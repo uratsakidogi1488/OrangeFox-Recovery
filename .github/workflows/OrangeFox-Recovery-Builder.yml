@@ -34,12 +34,15 @@ jobs:
         git config --global user.email "you@example.com"
         git config --global user.name "Your Name"
         
-        # Создаем структуру и копируем наш локальный файл
+        # Создаем структуру папок .repo
         mkdir -p .repo/manifests
-        cp $GITHUB_WORKSPACE/manifest_files/orangefox.xml .repo/manifests/default.xml
+        
+        # Копируем файл из корня репозитория в папку манифестов
+        # Мы используем прямую ссылку на файл в текущем рабочем каталоге
+        cp $GITHUB_WORKSPACE/orangefox.xml .repo/manifests/default.xml
         cp .repo/manifests/default.xml .repo/manifest.xml
         
-        # Запускаем синхронизацию. Теперь repo не будет пытаться делать 'init' через интернет
+        # Запускаем синхронизацию
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
         
         
