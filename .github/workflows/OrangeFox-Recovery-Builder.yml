@@ -33,8 +33,13 @@ jobs:
         cd ~/fox
         git config --global user.email "you@example.com"
         git config --global user.name "Your Name"
-        git clone https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0 .repo/manifests
+        
+        # Инициализация манифеста через стандартный git (без repo init)
+        mkdir -p .repo/manifests
+        git clone --depth=1 https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0 .repo/manifests
         cp .repo/manifests/default.xml .repo/manifest.xml
+        
+        # Теперь запускаем синхронизацию
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
         
         
