@@ -29,20 +29,16 @@ jobs:
    
     - name: Sync OrangeFox Sources
       run: |
+        # Чистим и создаем папки заново
+        rm -rf ~/fox
         mkdir -p ~/fox/bootable/recovery
         mkdir -p ~/fox/vendor/recovery
         cd ~/fox
         
-        # ЭТА СТРОКА РЕШАЕТ ПРОБЛЕМУ С USERNAME:
-        git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-        
-        git config --global user.email "you@example.com"
-        git config --global user.name "Your Name"
-        
-        # Теперь клонирование должно пройти без вопросов
+        # Клонируем базу OrangeFox напрямую. Если спросит Username — значит GitHub заблокировал анонимный доступ
         git clone --depth=1 https://github.com/OrangeFoxRecovery/recovery.git -b fox_11.0 bootable/recovery
         
-        # Для GitLab (если он тоже закапризничает)
+        # Клонируем вендорскую часть с Гитлаба
         git clone --depth=1 https://gitlab.com/OrangeFox/vendor.git -b fox_11.0 vendor/recovery
 
     - name: Clone Device Tree
