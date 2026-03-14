@@ -25,15 +25,15 @@ jobs:
         mkdir ~/bin
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
-        sudo ln -sf ~/bin/repo /usr/bin/repo
-  
+        sudo 
+ 
     - name: Sync OrangeFox Sources
       run: |
         mkdir ~/fox
         cd ~/fox
         git config --global user.email "you@example.com"
         git config --global user.name "Your Name"
-        git clone https://gitlab.com/OrangeFox/Manifest.git -b fox_11.0 .repo/manifests
+        git clone https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0 .repo/manifests
         cp .repo/manifests/default.xml .repo/manifest.xml
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
         
