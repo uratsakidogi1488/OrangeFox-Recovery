@@ -26,27 +26,20 @@ jobs:
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
-
+   
     - name: Sync OrangeFox Sources
       run: |
-        mkdir ~/fox
+        mkdir -p ~/fox/bootable/recovery
+        mkdir -p ~/fox/vendor/recovery
         cd ~/fox
         git config --global user.email "you@example.com"
         git config --global user.name "Your Name"
         
-        # 1. Создаем структуру .repo вручную
-        mkdir -p .repo/manifests
-        mkdir -p .repo/repo
+        # Качаем только саму базу OrangeFox (самое тяжелое)
+        git clone --depth=1 https://github.com/OrangeFoxRecovery/recovery.git -b fox_11.0 bootable/recovery
         
-        # 2. Скачиваем сам инструмент repo напрямую из Google
-        git clone https://gerrit.googlesource.com/git-repo .repo/repo
-        
-        # 3. Копируем твой orangefox.xml и делаем его главным манифестом
-        cp $GITHUB_WORKSPACE/orangefox.xml .repo/manifests/default.xml
-        ln -sf manifests/default.xml .repo/manifest.xml
-        
-        # 4. Запускаем синхронизацию через локальный repo
-        python3 .repo/repo/repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+        # Качаем вендорскую часть
+        git clone --depth=1 https://gitlab.com/OrangeFox/vendor.git -b fox_11.0 vendor/recovery
         
     - name: Clone Device Tree
       run: |
