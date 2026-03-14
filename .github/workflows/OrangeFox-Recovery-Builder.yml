@@ -31,12 +31,12 @@ jobs:
       run: |
         mkdir ~/fox
         cd ~/fox
-        git config --global user.email "you@example.com"
-        git config --global user.name "Your Name"
-        # Пробуем инициализацию через прямое зеркало GitLab (оно часто лучше дружит с repo)
-        repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_11.0
-        # Если первая команда прошла, синхронизируем
-        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+        git config --global url."https://github.com/".insteadOf "git@github.com:"
+        git config --global url."https://gitlab.com/".insteadOf "git@gitlab.com:"
+        mkdir .repo
+        git clone https://gitlab.com/OrangeFox/Manifest.git -b fox_11.0 .repo/manifests
+        cp .repo/manifests/default.xml .repo/manifest.xml
+        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
         
     - name: Clone Device Tree
       run: |
