@@ -31,14 +31,22 @@ jobs:
       run: |
         mkdir ~/fox
         cd ~/fox
-        repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_11.0
+        # Используем альтернативную ссылку на манифест
+        repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-
+        
     - name: Clone Device Tree
       run: |
         # Клонируем твое дерево из правильного репозитория и ветки
         git clone https://github.com/uratsakidogi1488/android_device_wheatek_WP15 -b WP15_RU-user-11-RP1A.200720.011-1653633312-release-keys ~/fox/device/wheatek/WP15
-
+  
+    - name: Create Config File
+      run: |
+        cd ~/fox/device/wheatek/WP15
+        echo "def check_config(config):" > fox.config.py
+        echo "    config['FOX_VERSION'] = 'R11.1'" >> fox.config.py
+        echo "    config['FOX_BUILD_TYPE'] = 'Unofficial'" >> fox.config.py
+        
     - name: Build OrangeFox
       run: |
         cd ~/fox
