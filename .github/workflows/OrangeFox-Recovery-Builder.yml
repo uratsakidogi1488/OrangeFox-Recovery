@@ -51,7 +51,6 @@ jobs:
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
-        # Используем конфиг из твоего AndroidProducts.mk
         lunch omni_WP15-eng
         mka recoveryimage -j$(nproc --all)
 
