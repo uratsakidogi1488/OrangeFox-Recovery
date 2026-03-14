@@ -26,23 +26,20 @@ jobs:
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
- 
+
     - name: Sync OrangeFox Sources
       run: |
         mkdir ~/fox
         cd ~/fox
-        # Используем встроенный токен GitHub для авторизации
-        git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
-        
         git config --global user.email "you@example.com"
         git config --global user.name "Your Name"
         
-        # Клонируем манифест напрямую
+        # Создаем структуру и копируем наш локальный файл
         mkdir -p .repo/manifests
-        git clone --depth=1 https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0 .repo/manifests
+        cp $GITHUB_WORKSPACE/manifest_files/orangefox.xml .repo/manifests/default.xml
         cp .repo/manifests/default.xml .repo/manifest.xml
         
-        # Запускаем синхронизацию
+        # Запускаем синхронизацию. Теперь repo не будет пытаться делать 'init' через интернет
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
         
         
