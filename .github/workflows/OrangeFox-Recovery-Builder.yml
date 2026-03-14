@@ -31,9 +31,9 @@ jobs:
       run: |
         mkdir ~/fox
         cd ~/fox
-        # Используем альтернативную ссылку на манифест
-        repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0
-        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+        git config --global credential.helper store
+        repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0 --no-clone-bundle
+        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune no-clone-bundle --no-tags
         
     - name: Clone Device Tree
       run: |
