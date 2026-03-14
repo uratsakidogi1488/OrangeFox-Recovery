@@ -26,12 +26,16 @@ jobs:
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
-
+  
     - name: Sync OrangeFox Sources
       run: |
         mkdir ~/fox
         cd ~/fox
-        repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0 --no-clone-bundle
+        git config --global user.email "you@example.com"
+        git config --global user.name "Your Name"
+        # Пробуем инициализацию через прямое зеркало GitLab (оно часто лучше дружит с repo)
+        repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_11.0
+        # Если первая команда прошла, синхронизируем
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
         
     - name: Clone Device Tree
