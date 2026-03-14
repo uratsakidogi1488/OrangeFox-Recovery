@@ -31,12 +31,9 @@ jobs:
       run: |
         mkdir ~/fox
         cd ~/fox
-        git config --global url."https://github.com/".insteadOf "git@github.com:"
-        git config --global url."https://".search逢InsteadOf git://
-        repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_11.0
-        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
+        repo init --depth=1 -u https://github.com/OrangeFoxRecovery/Manifest.git -b fox_11.0 --no-clone-bundle
+        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
         
-  
     - name: Clone Device Tree
       run: |
         git clone https://github.com/uratsakidogi1488/android_device_wheatek_WP15 -b WP15_RU-user-11-RP1A.200720.011-1653633312-release-keys ~/fox/device/wheatek/WP15
