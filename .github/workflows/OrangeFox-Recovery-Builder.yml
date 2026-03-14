@@ -29,18 +29,17 @@ jobs:
      
     - name: Sync OrangeFox Sources
       run: |
-        # Чистим и создаем папки заново
         rm -rf ~/fox
         mkdir -p ~/fox/bootable/recovery
         mkdir -p ~/fox/vendor/recovery
         cd ~/fox
         
-        # Клонируем базу OrangeFox напрямую. Если спросит Username — значит GitHub заблокировал анонимный доступ
-        git clone --depth=1 https://github.com/OrangeFoxRecovery/recovery.git -b fox_11.0 bootable/recovery
+        # Клонируем базу OrangeFox, вшивая токен прямо в URL
+        git clone --depth=1 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/OrangeFoxRecovery/recovery.git -b fox_11.0 bootable/recovery
         
-        # Клонируем вендорскую часть с Гитлаба
+        # Клонируем вендорскую часть (GitLab обычно пускает анонимно, но проверим)
         git clone --depth=1 https://gitlab.com/OrangeFox/vendor.git -b fox_11.0 vendor/recovery
-        
+
     - name: Clone Device Tree
       run: |
         git clone https://github.com/uratsakidogi1488/android_device_wheatek_WP15 ~/fox/device/wheatek/WP15
