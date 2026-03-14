@@ -31,12 +31,12 @@ jobs:
       run: |
         mkdir ~/fox
         cd ~/fox
-        git config --global url."https://github.com/".insteadOf "git@github.com:"
-        git config --global url."https://gitlab.com/".insteadOf "git@gitlab.com:"
-        mkdir .repo
+        git config --global user.email "you@example.com"
+        git config --global user.name "Your Name"
         git clone https://gitlab.com/OrangeFox/Manifest.git -b fox_11.0 .repo/manifests
         cp .repo/manifests/default.xml .repo/manifest.xml
-        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags --optimized-fetch --prune
+        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+        
         
     - name: Clone Device Tree
       run: |
