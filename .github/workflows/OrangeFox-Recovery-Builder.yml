@@ -41,22 +41,18 @@ jobs:
          echo "=== Проверка доступности проекта ==="
          curl -s https://gitlab.com/api/v4/projects/OrangeFox%2Frecovery | head -20
   
+    - name: Setup SSH for GitLab
+      run: |
+         mkdir -p ~/.ssh
+         echo "${{ secrets.GITLAB_SSH_KEY }}" > ~/.ssh/id_ed25519
+         chmod 600 ~/.ssh/id_ed25519
+         ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
+
     - name: Sync OrangeFox Sources
       run: |
-        rm -rf ~/fox
-        mkdir -p ~/fox/bootable/recovery
-        mkdir -p ~/fox/vendor/recovery
         cd ~/fox
-
-        git clone --depth=1 https://gitlab.com/OrangeFox/recovery.git -b fox_11.0 bootable/recovery
-
-        if ! git clone --depth=1 https://gitlab.com/OrangeFox/vendor.git -b fox_11.0 vendor/recovery 2>&1; then
-          echo "Не удалось клонировать из GitLab. Проверьте:"
-          echo "1. URL доступности: https://gitlab.com/OrangeFox/vendor.git"
-          echo "2. Существование ветки fox_11.0"
-          echo "3. Права доступа к приватному репозиторию"
-          exit 1
-        fi
+        git clone --depth=1 git@gitlab.com:OrangeFox/recovery.git -b fox_11.0 bootable/recovery
+        git clone --depth=1 git@gitlab.com:OrangeFox/vendor.git -b fox_11.0 vendor/recovery
     
     - name: Clone Device Tree
       run: |
