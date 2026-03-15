@@ -26,7 +26,21 @@ jobs:
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo
         sudo ln -sf ~/bin/repo /usr/bin/repo
-     
+
+    - name: Test GitLab Connectivity
+      run: |
+         echo "=== Проверка DNS ==="
+         nslookup gitlab.com || true
+    
+         echo "=== Проверка ping ==="
+         ping -c 2 gitlab.com || true
+    
+         echo "=== Проверка HTTPS ==="
+         curl -v https://gitlab.com 2>&1 | head -20
+    
+         echo "=== Проверка доступности проекта ==="
+         curl -s https://gitlab.com/api/v4/projects/OrangeFox%2Frecovery | head -20
+  
     - name: Sync OrangeFox Sources
       run: |
         rm -rf ~/fox
