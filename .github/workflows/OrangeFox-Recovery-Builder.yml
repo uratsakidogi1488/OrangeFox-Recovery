@@ -43,23 +43,22 @@ jobs:
     
     - name: Sync OrangeFox Sources
       run: |
-        # Полная очистка и создание структуры
         rm -rf ~/fox
-        mkdir -p ~/fox/bootable/recovery
-        mkdir -p ~/fox/vendor/recovery
+        mkdir -p ~/fox
         cd ~/fox
+        
+        # Обязательно "представляемся", иначе repo откажется работать
+        git config --global user.name "GitHub Action"
+        git config --global user.email "action@github.com"
+        
+        # Инициализируем манифест именно с GitLab, чтобы обойти ошибки 404
+        echo "=== Инициализация Repo ==="
+        repo init -u https://gitlab.com/OrangeFox/sync.git -b 11.0 --depth=1
+        
+        # Запускаем полную синхронизацию (это займет время, качать будет много)
+        echo "=== Синхронизация исходников ==="
+        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
 
-        # Клонируем базу по твоей ссылке
-        echo "Клонирование базы из GitLab..."
-        git clone --depth=1 https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_11.0 bootable/recovery
-
-        # Клонируем вендора по твоей ссылке
-        echo "Клонирование вендора из GitLab..."
-        git clone --depth=1 https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
-
-        # Проверка, что файлы на месте
-        ls -A bootable/recovery
-        ls -A vendor/recovery
 
 
     - name: Clone Device Tree
@@ -78,25 +77,18 @@ jobs:
       run: |
         cd ~/fox
         
-        # Попробуем найти хоть какой-то скрипт настройки среды
-        # Если его нет, создадим заглушку для запуска lunch
-        if [ -f "bootable/recovery/orangefox_build.sh" ]; then
-          source bootable/recovery/orangefox_build.sh
-        else
-          # Если скрипта нет, пробуем запустить стандартную настройку
-          # Если и её нет — придется использовать обходной путь
-          [ -f "build/envsetup.sh" ] && source build/envsetup.sh || echo "Стандартный envsetup не найден"
-        fi
-
+        # Теперь этот файл 100% будет на месте
+        source build/envsetup.sh
+        
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         
-        # Если lunch не сработает из-за отсутствия скриптов, 
-        # попробуем собрать напрямую через флаги
-        lunch omni_WP15-eng || echo "Lunch failed, пробуем прямой запуск"
+        # Выбираем твой аппарат
+        lunch omni_WP15-eng
         
-        # Основная команда сборки
+        # Запускаем компиляцию
         mka recoveryimage -j$(nproc --all)
+
 
 
     - name: Upload Result
