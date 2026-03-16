@@ -43,23 +43,26 @@ jobs:
     
     - name: Sync OrangeFox Sources
       run: |
-        # 1. Готовим папки
+        # 1. Полная чистка и создание структуры папок
         rm -rf ~/fox
         mkdir -p ~/fox/bootable/recovery
         mkdir -p ~/fox/vendor/recovery
+        cd ~/fox
         
-        # 2. Скачиваем базу OrangeFox
-        echo "Downloading Recovery..."
-        curl -L -o recovery.tar.gz https://github.com/OrangeFoxRecovery/recovery/archive/refs/heads/fox_11.0.tar.gz
-        tar -xzf recovery.tar.gz -C ~/fox/bootable/recovery --strip-components=1
+        # 2. Настройка авторизации через твой GITHUB_TOKEN
+        # Это заставит систему использовать твой "паспорт" для всех скачиваний с GitHub
+        git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
         
-        # 3. Скачиваем вендорскую часть
-        echo "Downloading Vendor..."
-        curl -L -o vendor.tar.gz https://gitlab.com/OrangeFox/vendor/-/archive/fox_11.0/vendor-fox_11.0.tar.gz
-        tar -xzf vendor.tar.gz -C ~/fox/vendor/recovery --strip-components=1
+        # 3. Клонируем базу OrangeFox
+        echo "Cloning Recovery Base..."
+        git clone --depth=1 https://github.com/OrangeFoxRecovery/recovery.git -b fox_11.0 bootable/recovery
         
-        # 4. Проверка
-        ls -l ~/fox/bootable/recovery
+        # 4. Клонируем вендора (GitLab обычно пускает без проблем)
+        echo "Cloning Vendor..."
+        git clone --depth=1 https://gitlab.com/OrangeFox/vendor.git -b fox_11.0 vendor/recovery
+        
+        # 5. Проверка, что папки не пустые
+        ls -A bootable/recovery
 
 
     - name: Clone Device Tree
