@@ -43,20 +43,24 @@ jobs:
     
     - name: Sync OrangeFox Sources
       run: |
-        # Создаем структуру папок
+        # 1. Готовим папки
+        rm -rf ~/fox
         mkdir -p ~/fox/bootable/recovery
         mkdir -p ~/fox/vendor/recovery
         
-        echo "=== Downloading Recovery Base via CURL ==="
-        # Качаем базу архивом и распаковываем в нужную папку
-        curl -L https://github.com/OrangeFoxRecovery/recovery/archive/refs/heads/fox_11.0.tar.gz | tar -xzC ~/fox/bootable/recovery --strip-components=1
+        # 2. Скачиваем базу OrangeFox
+        echo "Downloading Recovery..."
+        curl -L -o recovery.tar.gz https://github.com/OrangeFoxRecovery/recovery/archive/refs/heads/fox_11.0.tar.gz
+        tar -xzf recovery.tar.gz -C ~/fox/bootable/recovery --strip-components=1
         
-        echo "=== Downloading Vendor Sources via CURL ==="
-        # Качаем вендора с Гитлаба архивом
-        curl -L https://gitlab.com/OrangeFox/vendor/-/archive/fox_11.0/vendor-fox_11.0.tar.gz | tar -xzC ~/fox/vendor/recovery --strip-components=1
+        # 3. Скачиваем вендорскую часть
+        echo "Downloading Vendor..."
+        curl -L -o vendor.tar.gz https://gitlab.com/OrangeFox/vendor/-/archive/fox_11.0/vendor-fox_11.0.tar.gz
+        tar -xzf vendor.tar.gz -C ~/fox/vendor/recovery --strip-components=1
         
-        # Проверяем, что файлы реально скачались и лежат на месте
-        ls -l ~/fox/bootable/recovery/README.md
+        # 4. Проверка
+        ls -l ~/fox/bootable/recovery
+
 
     - name: Clone Device Tree
       run: |
