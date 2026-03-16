@@ -40,8 +40,7 @@ jobs:
     
          echo "=== Проверка доступности проекта ==="
          curl -s https://gitlab.com/api/v4/projects/OrangeFox%2Frecovery | head -20
-    
-    - name: Sync OrangeFox Sources
+        - name: Sync OrangeFox Sources
       run: |
         rm -rf ~/fox
         mkdir -p ~/fox
@@ -51,14 +50,13 @@ jobs:
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
         
-        # Инициализируем манифест именно с GitLab, чтобы обойти ошибки 404
+        # Инициализируем манифест (правильная ссылка и ветка fox_11.0)
         echo "=== Инициализация Repo ==="
-        repo init -u https://gitlab.com/OrangeFox/sync.git -b 11.0 --depth=1
+        repo init -u https://gitlab.com/OrangeFox/manifest.git -b fox_11.0 --depth=1
         
-        # Запускаем полную синхронизацию (это займет время, качать будет много)
+        # Запускаем полную синхронизацию
         echo "=== Синхронизация исходников ==="
         repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-
 
 
     - name: Clone Device Tree
