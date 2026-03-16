@@ -41,19 +41,22 @@ jobs:
          echo "=== Проверка доступности проекта ==="
          curl -s https://gitlab.com/api/v4/projects/OrangeFox%2Frecovery | head -20
   
-    - name: Setup SSH for GitLab
-      run: |
-         mkdir -p ~/.ssh
-         echo "${{ secrets.GITLAB_SSH_KEY }}" > ~/.ssh/id_ed25519
-         chmod 600 ~/.ssh/id_ed25519
-         ssh-keyscan gitlab.com >> ~/.ssh/known_hosts
-
     - name: Sync OrangeFox Sources
       run: |
-        cd ~/fox
-        git clone --depth=1 git@gitlab.com:OrangeFox/bootable/Recovery.git -b fox_11.0 bootable/recovery
-        git clone --depth=1 git@gitlab.com:OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
+          cd ~/fox
     
+          for i in {1..3}; do
+          echo "Попытка $i: клонирование recovery..."
+          git clone --depth=1 https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_11.0 bootable/recovery && break
+          sleep 10
+          done
+    
+          for i in {1..3}; do
+          echo "Попытка $i: клонирование vendor..."
+          git clone --depth=1 https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery && break
+          sleep 10
+          done
+
     - name: Clone Device Tree
       run: |
         git clone https://github.com/uratsakidogi1488/android_device_wheatek_WP15 ~/fox/device/wheatek/WP15
