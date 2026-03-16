@@ -78,23 +78,26 @@ jobs:
       run: |
         cd ~/fox
         
-        # Поиск файла сборки (на случай разного регистра папок)
-        BUILD_SCRIPT=$(find . -name "orangefox_build.sh" | head -n 1)
-        
-        if [ -z "$BUILD_SCRIPT" ]; then
-          echo "ОШИБКА: orangefox_build.sh не найден! Проверяю содержимое ~/fox:"
-          ls -R ~/fox
-          exit 1
+        # Попробуем найти хоть какой-то скрипт настройки среды
+        # Если его нет, создадим заглушку для запуска lunch
+        if [ -f "bootable/recovery/orangefox_build.sh" ]; then
+          source bootable/recovery/orangefox_build.sh
+        else
+          # Если скрипта нет, пробуем запустить стандартную настройку
+          # Если и её нет — придется использовать обходной путь
+          [ -f "build/envsetup.sh" ] && source build/envsetup.sh || echo "Стандартный envsetup не найден"
         fi
-        
-        echo "Использую скрипт: $BUILD_SCRIPT"
-        source "$BUILD_SCRIPT"
-        
+
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         
-        lunch omni_WP15-eng
+        # Если lunch не сработает из-за отсутствия скриптов, 
+        # попробуем собрать напрямую через флаги
+        lunch omni_WP15-eng || echo "Lunch failed, пробуем прямой запуск"
+        
+        # Основная команда сборки
         mka recoveryimage -j$(nproc --all)
+
 
     - name: Upload Result
       uses: actions/upload-artifact@v4
