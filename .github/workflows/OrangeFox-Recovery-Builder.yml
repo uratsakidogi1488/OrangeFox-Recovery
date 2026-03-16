@@ -77,10 +77,16 @@ jobs:
     - name: Build OrangeFox
       run: |
         cd ~/fox
-        source build/envsetup.sh
+        # Указываем путь к envsetup внутри скачанных исходников
+        source bootable/recovery/orangefox_build.sh
+        
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
+        
+        # Запускаем обед (lunch)
         lunch omni_WP15-eng
+        
+        # Погнали собирать
         mka recoveryimage -j$(nproc --all)
 
     - name: Upload Result
