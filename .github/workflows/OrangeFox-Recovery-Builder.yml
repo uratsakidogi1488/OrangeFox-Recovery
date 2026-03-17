@@ -40,7 +40,8 @@ jobs:
     
          echo "=== Проверка доступности проекта ==="
          curl -s https://gitlab.com/api/v4/projects/OrangeFox%2Frecovery | head -20
-        - name: Sync OrangeFox Sources
+  
+    - name: Sync OrangeFox Sources
       run: |
         rm -rf ~/fox
         mkdir -p ~/fox
