@@ -41,25 +41,25 @@ jobs:
          echo "=== Проверка доступности проекта ==="
          curl -s https://gitlab.com/api/v4/projects/OrangeFox%2Frecovery | head -20
   
-    - name: Sync OrangeFox Sources
+    - name: Sync Sources (TWRP Base + OrangeFox)
       run: |
-        # Зачищаем старые хвосты
         rm -rf ~/fox ~/sync
         mkdir -p ~/fox
+        cd ~/fox
         
-        # Обязательно представляемся, так как скрипт будет использовать Git внутри
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
         
-        # Качаем официальный скрипт синхронизации от OrangeFox
-        echo "=== Скачивание скрипта синхронизации ==="
-        git clone https://gitlab.com/OrangeFox/sync.git ~/sync
-        cd ~/sync
+        echo "=== 1. Качаем стабильную базу инструментов (TWRP 11) ==="
+        repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-11 --depth=1
+        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
         
-        # Запускаем скрипт (указываем ветку 11.0 и путь, куда качать исходники)
-        echo "=== Запуск синхронизации (это займет время) ==="
-        ./orangefox_sync.sh --branch 11.0 --path ~/fox
-
+        echo "=== 2. Вырезаем стандартный TWRP ==="
+        rm -rf bootable/recovery
+        
+        echo "=== 3. Внедряем твои рабочие исходники OrangeFox 11.0 ==="
+        git clone --depth=1 https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_11.0 bootable/recovery
+        git clone --depth=1 https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
 
     - name: Clone Device Tree
       run: |
