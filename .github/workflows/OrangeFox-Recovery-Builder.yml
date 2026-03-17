@@ -43,21 +43,22 @@ jobs:
   
     - name: Sync OrangeFox Sources
       run: |
-        rm -rf ~/fox
+        # Зачищаем старые хвосты
+        rm -rf ~/fox ~/sync
         mkdir -p ~/fox
-        cd ~/fox
         
-        # Обязательно "представляемся", иначе repo откажется работать
+        # Обязательно представляемся, так как скрипт будет использовать Git внутри
         git config --global user.name "GitHub Action"
         git config --global user.email "action@github.com"
         
-        # Инициализируем манифест (правильная ссылка и ветка fox_11.0)
-        echo "=== Инициализация Repo ==="
-        repo init -u https://gitlab.com/OrangeFox/manifest.git -b fox_11.0 --depth=1
+        # Качаем официальный скрипт синхронизации от OrangeFox
+        echo "=== Скачивание скрипта синхронизации ==="
+        git clone https://gitlab.com/OrangeFox/sync.git ~/sync
+        cd ~/sync
         
-        # Запускаем полную синхронизацию
-        echo "=== Синхронизация исходников ==="
-        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+        # Запускаем скрипт (указываем ветку 11.0 и путь, куда качать исходники)
+        echo "=== Запуск синхронизации (это займет время) ==="
+        ./orangefox_sync.sh --branch 11.0 --path ~/fox
 
 
     - name: Clone Device Tree
