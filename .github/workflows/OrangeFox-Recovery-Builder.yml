@@ -72,23 +72,36 @@ jobs:
         echo "def check_config(config):" > fox.config.py
         echo "    config['FOX_VERSION'] = 'R11.1'" >> fox.config.py
         echo "    config['FOX_BUILD_TYPE'] = 'Unofficial'" >> fox.config.py
+
+    - name: Patch Device Tree
+      run: |
+        cd ~/fox/device/wheatek/WP15
+        
+        # 1. Исправляем vendorsetup.sh (удаляем старую команду)
+        sed -i '/add_lunch_combo/d' vendorsetup.sh
+        
+        # 2. Создаем AndroidProducts.mk (новый стандарт для lunch)
+        echo "PRODUCT_MAKEFILES := \$(LOCAL_DIR)/omni_WP15.mk" > AndroidProducts.mk
+        echo "COMMON_LUNCH_CHOICES := omni_WP15-eng" >> AndroidProducts.mk
+        
+        # 3. Убираем старый флаг из device.mk
+        sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL := true/# PRODUCT_STATIC_BOOT_CONTROL_HAL := true/' device.mk
+        
+        echo "=== Дерево устройства пропатчено под Android 11 ==="
         
     - name: Build OrangeFox
       run: |
         cd ~/fox
-        
-        # Теперь этот файл 100% будет на месте
         source build/envsetup.sh
+        
+        # Теперь lunch должен сработать, так как мы создали AndroidProducts.mk
+        lunch omni_WP15-eng || (echo "Lunch провалился, пробуем прямой выбор" && export TARGET_DEVICE=WP15)
         
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         
-        # Выбираем твой аппарат
-        lunch omni_WP15-eng
-        
-        # Запускаем компиляцию
+        # Запускаем сборку
         mka recoveryimage -j$(nproc --all)
-
 
 
     - name: Upload Result
