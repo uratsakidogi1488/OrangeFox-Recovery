@@ -73,29 +73,32 @@ jobs:
         echo "    config['FOX_VERSION'] = 'R11.1'" >> fox.config.py
         echo "    config['FOX_BUILD_TYPE'] = 'Unofficial'" >> fox.config.py
 
+  
     - name: Patch Device Tree
       run: |
+        # Переходим в папку устройства
         cd ~/fox/device/wheatek/WP15
         
-        # 1. Аккуратное комментирование проблемной строки, чтобы не сломать Makefile
-        sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL := true/# PRODUCT_STATIC_BOOT_CONTROL_HAL := true/' device.mk
-        sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL := false/# PRODUCT_STATIC_BOOT_CONTROL_HAL := false/' device.mk
+        # 1. Удаляем ЛЮБУЮ строку, содержащую PRODUCT_STATIC_BOOT_CONTROL_HAL
+        # Параметр /d в sed просто стирает строку целиком
+        sed -i '/PRODUCT_STATIC_BOOT_CONTROL_HAL/d' device.mk
         
-        # 2. Жестко прописываем тему и экран прямо в BoardConfig.mk
-        # Используем >> чтобы добавить в конец файла
+        # 2. Проверяем, удалилась ли строка (вывод будет в логах Гитхаба)
+        echo "=== Проверка device.mk после патча ==="
+        grep "PRODUCT_STATIC_BOOT_CONTROL_HAL" device.mk || echo "Строка успешно удалена!"
+        
+        # 3. Добавляем настройки экрана в BoardConfig.mk (чтобы не упало на темах)
         echo "" >> BoardConfig.mk
         echo "TARGET_SCREEN_WIDTH := 720" >> BoardConfig.mk
         echo "TARGET_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
         echo "TW_THEME := portrait_hdpi" >> BoardConfig.mk
-        echo "DEVICE_SCREEN_WIDTH := 720" >> BoardConfig.mk
-        echo "DEVICE_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
         
-        # 3. Фикс для lunch
+        # 4. Исправляем vendorsetup.sh и создаем AndroidProducts.mk
         sed -i '/add_lunch_combo/d' vendorsetup.sh
-        echo "PRODUCT_MAKEFILES := \$(LOCAL_DIR)/omni_WP15.mk" > AndroidProducts.mk
-        echo "COMMON_LUNCH_CHOICES := omni_WP15-eng" >> AndroidProducts.mk
+        echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_WP15.mk' > AndroidProducts.mk
+        echo 'COMMON_LUNCH_CHOICES := omni_WP15-eng' >> AndroidProducts.mk
         
-        echo "=== Патч WP15 завершен (v3) ==="
+        echo "=== Патч завершен ==="
 
     - name: Build OrangeFox
       run: |
@@ -105,10 +108,10 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         
-        # Пытаемся выбрать устройство. Если не выйдет - выводим ошибку и стопим билд.
-        lunch omni_WP15-eng || { echo "ERROR: Lunch failed! Check device.mk syntax."; exit 1; }
+        # Пытаемся запустить lunch. Если упадет - мы увидим "LUNCH FAILED"
+        lunch omni_WP15-eng || { echo "LUNCH FAILED - проверьте синтаксис device.mk еще раз"; exit 1; }
         
-        # Собираем с ограничением потоков, чтобы не вылетало по памяти
+        # Собираем
         mka recoveryimage -j$(nproc --all)
 
 
