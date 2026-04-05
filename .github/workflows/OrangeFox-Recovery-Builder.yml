@@ -77,36 +77,38 @@ jobs:
       run: |
         cd ~/fox/device/wheatek/WP15
         
-        # 1. Вырезаем устаревший HAL (теперь через поиск по строке, наверняка)
-        sed -i '/PRODUCT_STATIC_BOOT_CONTROL_HAL/d' device.mk
+        # 1. Аккуратное комментирование проблемной строки, чтобы не сломать Makefile
+        sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL := true/# PRODUCT_STATIC_BOOT_CONTROL_HAL := true/' device.mk
+        sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL := false/# PRODUCT_STATIC_BOOT_CONTROL_HAL := false/' device.mk
         
-        # 2. Добавляем параметры экрана в BoardConfig.mk (у WP15 это 720x1600)
-        # Это решит ошибку "Could not find ui.xml"
+        # 2. Жестко прописываем тему и экран прямо в BoardConfig.mk
+        # Используем >> чтобы добавить в конец файла
+        echo "" >> BoardConfig.mk
         echo "TARGET_SCREEN_WIDTH := 720" >> BoardConfig.mk
         echo "TARGET_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
         echo "TW_THEME := portrait_hdpi" >> BoardConfig.mk
+        echo "DEVICE_SCREEN_WIDTH := 720" >> BoardConfig.mk
+        echo "DEVICE_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
         
-        # 3. Пересоздаем AndroidProducts.mk (на всякий случай)
+        # 3. Фикс для lunch
+        sed -i '/add_lunch_combo/d' vendorsetup.sh
         echo "PRODUCT_MAKEFILES := \$(LOCAL_DIR)/omni_WP15.mk" > AndroidProducts.mk
         echo "COMMON_LUNCH_CHOICES := omni_WP15-eng" >> AndroidProducts.mk
         
-        # 4. Убираем add_lunch_combo, который бесит систему
-        sed -i '/add_lunch_combo/d' vendorsetup.sh
-        
-        echo "=== Дерево устройства WP15 полностью адаптировано ==="
-        
+        echo "=== Патч WP15 завершен (v3) ==="
+
     - name: Build OrangeFox
       run: |
         cd ~/fox
         source build/envsetup.sh
         
-        # Теперь lunch должен сработать, так как мы создали AndroidProducts.mk
-        lunch omni_WP15-eng || (echo "Lunch провалился, пробуем прямой выбор" && export TARGET_DEVICE=WP15)
-        
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         
-        # Запускаем сборку
+        # Пытаемся выбрать устройство. Если не выйдет - выводим ошибку и стопим билд.
+        lunch omni_WP15-eng || { echo "ERROR: Lunch failed! Check device.mk syntax."; exit 1; }
+        
+        # Собираем с ограничением потоков, чтобы не вылетало по памяти
         mka recoveryimage -j$(nproc --all)
 
 
