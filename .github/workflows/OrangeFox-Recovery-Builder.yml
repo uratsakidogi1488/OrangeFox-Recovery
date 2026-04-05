@@ -77,17 +77,23 @@ jobs:
       run: |
         cd ~/fox/device/wheatek/WP15
         
-        # 1. Исправляем vendorsetup.sh (удаляем старую команду)
-        sed -i '/add_lunch_combo/d' vendorsetup.sh
+        # 1. Вырезаем устаревший HAL (теперь через поиск по строке, наверняка)
+        sed -i '/PRODUCT_STATIC_BOOT_CONTROL_HAL/d' device.mk
         
-        # 2. Создаем AndroidProducts.mk (новый стандарт для lunch)
+        # 2. Добавляем параметры экрана в BoardConfig.mk (у WP15 это 720x1600)
+        # Это решит ошибку "Could not find ui.xml"
+        echo "TARGET_SCREEN_WIDTH := 720" >> BoardConfig.mk
+        echo "TARGET_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
+        echo "TW_THEME := portrait_hdpi" >> BoardConfig.mk
+        
+        # 3. Пересоздаем AndroidProducts.mk (на всякий случай)
         echo "PRODUCT_MAKEFILES := \$(LOCAL_DIR)/omni_WP15.mk" > AndroidProducts.mk
         echo "COMMON_LUNCH_CHOICES := omni_WP15-eng" >> AndroidProducts.mk
         
-        # 3. Убираем старый флаг из device.mk
-        sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL := true/# PRODUCT_STATIC_BOOT_CONTROL_HAL := true/' device.mk
+        # 4. Убираем add_lunch_combo, который бесит систему
+        sed -i '/add_lunch_combo/d' vendorsetup.sh
         
-        echo "=== Дерево устройства пропатчено под Android 11 ==="
+        echo "=== Дерево устройства WP15 полностью адаптировано ==="
         
     - name: Build OrangeFox
       run: |
