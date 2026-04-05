@@ -78,17 +78,13 @@ jobs:
       run: |
         cd ~/fox/device/wheatek/WP15
         
-        # 1. Прошлый фикс: нейтрализуем HAL
+        # 1. Нейтрализуем HAL (иначе lunch упадет)
         sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL/DUMMY_IGNORE_THIS/g' device.mk
         
-        # 2. НОВЫЙ ФИКС: Меняем пути Omni на TWRP в главном makefile устройства
+        # 2. Меняем пути Omni на TWRP
         sed -i 's/vendor\/omni\/config\/common.mk/vendor\/twrp\/config\/common.mk/g' omni_WP15.mk
         
-        # Проверяем, прошли ли замены (увидим в логах)
-        grep "DUMMY_IGNORE_THIS" device.mk || echo "Замена HAL не удалась!"
-        grep "vendor/twrp" omni_WP15.mk || echo "Замена пути на TWRP не удалась!"
-        
-        # 3. Настройки дисплея (чтобы избежать ошибки с TW_THEME)
+        # 3. Настройки экрана (чтобы тема не крашнулась)
         echo "" >> BoardConfig.mk
         echo "TARGET_SCREEN_WIDTH := 720" >> BoardConfig.mk
         echo "TARGET_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
@@ -99,21 +95,27 @@ jobs:
         echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_WP15.mk' > AndroidProducts.mk
         echo 'COMMON_LUNCH_CHOICES := omni_WP15-eng' >> AndroidProducts.mk
         
-        echo "=== Патч v5: пути Omni заменены на TWRP ==="
+        echo "=== Патчи наложены! ==="
 
     - name: Build OrangeFox
       run: |
         cd ~/fox
         source build/envsetup.sh
-        
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         
-        # Пытаемся запустить lunch. Если упадет - мы увидим "LUNCH FAILED"
-        lunch omni_WP15-eng || { echo "LUNCH FAILED - проверьте синтаксис device.mk еще раз"; exit 1; }
+        # ВЫБИРАЕМ АППАРАТ
+        lunch omni_WP15-eng || { echo "ОШИБКА LUNCH"; exit 1; }
         
-        # Собираем
+        # ПРИНУДИТЕЛЬНАЯ ОЧИСТКА (чтобы Ninja не ленился)
+        make clean
+        
+        # СОБИРАЕМ
         mka recoveryimage -j$(nproc --all)
+        
+        # ДИАГНОСТИКА: Ищем всё, что собралось, и выводим в лог
+        echo "=== ПОИСК ГОТОВЫХ ФАЙЛОВ ==="
+        find out/target/product/ -name "*.img" -o -name "*.zip"
 
 
     - name: Upload Result
