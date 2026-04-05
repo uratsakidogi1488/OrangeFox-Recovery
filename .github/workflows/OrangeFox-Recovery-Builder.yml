@@ -78,24 +78,28 @@ jobs:
       run: |
         cd ~/fox/device/wheatek/WP15
         
-        # Аккуратно переименовываем переменную в DUMMY_IGNORE_THIS, не трогая остальной текст строки
+        # 1. Прошлый фикс: нейтрализуем HAL
         sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL/DUMMY_IGNORE_THIS/g' device.mk
         
-        # Проверяем, прошла ли замена (увидим в логах)
-        grep "DUMMY_IGNORE_THIS" device.mk || echo "Замена не удалась!"
+        # 2. НОВЫЙ ФИКС: Меняем пути Omni на TWRP в главном makefile устройства
+        sed -i 's/vendor\/omni\/config\/common.mk/vendor\/twrp\/config\/common.mk/g' omni_WP15.mk
         
-        # Добавляем настройки дисплея, чтобы избежать ошибки с TW_THEME
+        # Проверяем, прошли ли замены (увидим в логах)
+        grep "DUMMY_IGNORE_THIS" device.mk || echo "Замена HAL не удалась!"
+        grep "vendor/twrp" omni_WP15.mk || echo "Замена пути на TWRP не удалась!"
+        
+        # 3. Настройки дисплея (чтобы избежать ошибки с TW_THEME)
         echo "" >> BoardConfig.mk
         echo "TARGET_SCREEN_WIDTH := 720" >> BoardConfig.mk
         echo "TARGET_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
         echo "TW_THEME := portrait_hdpi" >> BoardConfig.mk
         
-        # Чиним меню lunch
+        # 4. Чиним меню lunch
         sed -i '/add_lunch_combo/d' vendorsetup.sh
         echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_WP15.mk' > AndroidProducts.mk
         echo 'COMMON_LUNCH_CHOICES := omni_WP15-eng' >> AndroidProducts.mk
         
-        echo "=== Патч v4: синтаксис сохранен ==="
+        echo "=== Патч v5: пути Omni заменены на TWRP ==="
 
     - name: Build OrangeFox
       run: |
