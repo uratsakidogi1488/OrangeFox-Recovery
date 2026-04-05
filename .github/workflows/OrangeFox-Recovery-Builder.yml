@@ -76,29 +76,26 @@ jobs:
   
     - name: Patch Device Tree
       run: |
-        # Переходим в папку устройства
         cd ~/fox/device/wheatek/WP15
         
-        # 1. Удаляем ЛЮБУЮ строку, содержащую PRODUCT_STATIC_BOOT_CONTROL_HAL
-        # Параметр /d в sed просто стирает строку целиком
-        sed -i '/PRODUCT_STATIC_BOOT_CONTROL_HAL/d' device.mk
+        # Аккуратно переименовываем переменную в DUMMY_IGNORE_THIS, не трогая остальной текст строки
+        sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL/DUMMY_IGNORE_THIS/g' device.mk
         
-        # 2. Проверяем, удалилась ли строка (вывод будет в логах Гитхаба)
-        echo "=== Проверка device.mk после патча ==="
-        grep "PRODUCT_STATIC_BOOT_CONTROL_HAL" device.mk || echo "Строка успешно удалена!"
+        # Проверяем, прошла ли замена (увидим в логах)
+        grep "DUMMY_IGNORE_THIS" device.mk || echo "Замена не удалась!"
         
-        # 3. Добавляем настройки экрана в BoardConfig.mk (чтобы не упало на темах)
+        # Добавляем настройки дисплея, чтобы избежать ошибки с TW_THEME
         echo "" >> BoardConfig.mk
         echo "TARGET_SCREEN_WIDTH := 720" >> BoardConfig.mk
         echo "TARGET_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
         echo "TW_THEME := portrait_hdpi" >> BoardConfig.mk
         
-        # 4. Исправляем vendorsetup.sh и создаем AndroidProducts.mk
+        # Чиним меню lunch
         sed -i '/add_lunch_combo/d' vendorsetup.sh
         echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_WP15.mk' > AndroidProducts.mk
         echo 'COMMON_LUNCH_CHOICES := omni_WP15-eng' >> AndroidProducts.mk
         
-        echo "=== Патч завершен ==="
+        echo "=== Патч v4: синтаксис сохранен ==="
 
     - name: Build OrangeFox
       run: |
