@@ -104,16 +104,16 @@ jobs:
         export ALLOW_MISSING_DEPENDENCIES=true
         export LC_ALL=C
         
-        # ВЫБИРАЕМ АППАРАТ
+        # Выбираем устройство
         lunch omni_WP15-eng || { echo "ОШИБКА LUNCH"; exit 1; }
         
-        # ПРИНУДИТЕЛЬНАЯ ОЧИСТКА (чтобы Ninja не ленился)
+        # Чистим старый кэш
         make clean
         
-        # СОБИРАЕМ
-        mka recoveryimage -j$(nproc --all)
+        # СОБИРАЕМ ОБА ВАРИАНТА (какой-то из них точно сработает)
+        mka bootimage recoveryimage -j$(nproc --all)
         
-        # ДИАГНОСТИКА: Ищем всё, что собралось, и выводим в лог
+        # ДИАГНОСТИКА: Ищем всё, что собралось
         echo "=== ПОИСК ГОТОВЫХ ФАЙЛОВ ==="
         find out/target/product/ -name "*.img" -o -name "*.zip"
 
