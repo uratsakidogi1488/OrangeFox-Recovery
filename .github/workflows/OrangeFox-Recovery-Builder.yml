@@ -102,18 +102,26 @@ jobs:
         cd ~/fox
         source build/envsetup.sh
         
-        # Указываем, что мы собираем именно OrangeFox
+        # ОСНОВНЫЕ ФЛАГИ ORANGEFOX
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
+        export FOX_VERSION="R11.1"
         export LC_ALL=C
+        
+        # Переменные для интеграции в boot.img (Virtual A/B)
+        export OF_AB_DEVICE=1
+        export OF_VIRTUAL_AB=1
         
         lunch omni_WP15-eng || { echo "ОШИБКА LUNCH"; exit 1; }
         
-        # Полная очистка, чтобы Ниндзя не халтурил
+        # Принудительная очистка, чтобы пересобрать всё с нуля
         make clean
         
-        # Запуск сборки через официальный флаг OrangeFox
-        mka recoveryimage -j$(nproc --all)
+        # Запуск сборки
+        mka bootimage -j$(nproc --all)
+        
+        # Вывод структуры для проверки (посмотрим, что внутри)
+        ls -R out/target/product/WP15/recovery/root
 
 
     - name: Upload Result
