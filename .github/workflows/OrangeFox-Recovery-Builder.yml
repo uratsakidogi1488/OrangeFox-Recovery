@@ -101,21 +101,19 @@ jobs:
       run: |
         cd ~/fox
         source build/envsetup.sh
+        
+        # Указываем, что мы собираем именно OrangeFox
         export ALLOW_MISSING_DEPENDENCIES=true
+        export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
         export LC_ALL=C
         
-        # Выбираем устройство
         lunch omni_WP15-eng || { echo "ОШИБКА LUNCH"; exit 1; }
         
-        # Чистим старый кэш
+        # Полная очистка, чтобы Ниндзя не халтурил
         make clean
         
-        # СОБИРАЕМ ОБА ВАРИАНТА (какой-то из них точно сработает)
-        mka bootimage recoveryimage -j$(nproc --all)
-        
-        # ДИАГНОСТИКА: Ищем всё, что собралось
-        echo "=== ПОИСК ГОТОВЫХ ФАЙЛОВ ==="
-        find out/target/product/ -name "*.img" -o -name "*.zip"
+        # Запуск сборки через официальный флаг OrangeFox
+        mka recoveryimage -j$(nproc --all)
 
 
     - name: Upload Result
