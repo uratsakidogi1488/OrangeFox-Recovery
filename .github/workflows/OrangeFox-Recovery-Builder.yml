@@ -61,6 +61,14 @@ jobs:
         git clone --depth=1 https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_11.0 bootable/recovery
         git clone --depth=1 https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
 
+    - name: Force Clone OrangeFox Vendor
+      run: |
+        cd ~/fox
+        # Удаляем пустой или стандартный twrp-вендор, если он есть
+        rm -rf vendor/recovery
+        # Качаем именно ядро OrangeFox
+        git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
+
     - name: Clone Device Tree
       run: |
         git clone https://github.com/uratsakidogi1488/android_device_wheatek_WP15 ~/fox/device/wheatek/WP15
@@ -109,16 +117,25 @@ jobs:
         cd ~/fox
         source build/envsetup.sh
         
-        # Самые важные флаги для WP15
+        # Флаги идентификации OrangeFox
         export ALLOW_MISSING_DEPENDENCIES=true
-        export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
+        export FOX_VERSION="R11.1_1"
+        export FOX_BUILD_DEVICE="WP15"
         export LC_ALL=C
         
-        lunch omni_WP15-eng || { echo "LUNCH FAILED"; exit 1; }
+        # Флаги для интеграции в boot.img (Virtual A/B)
+        export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
+        export OF_AB_DEVICE=1
+        export OF_VIRTUAL_AB=1
         
-        # Собираем напрямую bootimage, но заставляем его включить OF
-        make bootimage -j$(nproc --all)
-
+        # Пытаемся запустить родной скрипт сборки Лисы, если он скачался
+        if [ -f vendor/recovery/orangefox_build.sh ]; then
+          lunch omni_WP15-eng
+          mka bootimage -j$(nproc --all)
+        else
+          echo "ОШИБКА: Исходники OrangeFox не найдены в vendor/recovery!"
+          exit 1
+        fi
 
     - name: Upload Result
       uses: actions/upload-artifact@v4
