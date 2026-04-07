@@ -97,49 +97,27 @@ jobs:
         
         echo "=== Патчи наложены! ==="
 
+    - name: Download OrangeFox Scripts
+      run: |
+        cd ~/fox
+        # Принудительно качаем скрипты сборки Лисы, если их нет
+        [ -d vendor/recovery ] || git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
+
+
     - name: Build OrangeFox
       run: |
         cd ~/fox
-        # Принудительно подгружаем переменные Лисы
-        [ -f sync.sh ] && source sync.sh 
         source build/envsetup.sh
         
-        # Флаги, без которых Лиса не соберется в Boot
+        # Самые важные флаги для WP15
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
-        export FOX_BUILD_DEVICE=WP15
         export LC_ALL=C
         
         lunch omni_WP15-eng || { echo "LUNCH FAILED"; exit 1; }
         
-        # Сначала соберем саму структуру рекавери
-        mka recoverytarball -j$(nproc --all)
-        # А теперь упакуем это в бут
-        mka bootimage -j$(nproc --all)
-
-        cd ~/fox
-        source build/envsetup.sh
-        
-        # ОСНОВНЫЕ ФЛАГИ ORANGEFOX
-        export ALLOW_MISSING_DEPENDENCIES=true
-        export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
-        export FOX_VERSION="R11.1"
-        export LC_ALL=C
-        
-        # Переменные для интеграции в boot.img (Virtual A/B)
-        export OF_AB_DEVICE=1
-        export OF_VIRTUAL_AB=1
-        
-        lunch omni_WP15-eng || { echo "ОШИБКА LUNCH"; exit 1; }
-        
-        # Принудительная очистка, чтобы пересобрать всё с нуля
-        make clean
-        
-        # Запуск сборки
-        mka bootimage -j$(nproc --all)
-        
-        # Вывод структуры для проверки (посмотрим, что внутри)
-        ls -R out/target/product/WP15/recovery/root
+        # Собираем напрямую bootimage, но заставляем его включить OF
+        make bootimage -j$(nproc --all)
 
 
     - name: Upload Result
