@@ -124,7 +124,7 @@ jobs:
         cd ~/fox
         source build/envsetup.sh
         
-        # Критически важные флаги для WP15 (Virtual A/B)
+        # Настраиваем Лису под твой WP15
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
         export FOX_BUILD_DEVICE=WP15
@@ -132,16 +132,9 @@ jobs:
         export OF_VIRTUAL_AB=1
         export LC_ALL=C
         
-        # Проверяем наличие файла перед стартом
-        if [ -d "vendor/recovery/orangefox" ] || [ -f "vendor/recovery/orangefox_build.sh" ]; then
-          lunch omni_WP15-eng || { echo "LUNCH FAILED"; exit 1; }
-          # Собираем именно bootimage, так как раздела recovery нет
-          mka bootimage -j$(nproc --all)
-        else
-          echo "КРИТИЧЕСКАЯ ОШИБКА: Папка vendor/recovery пуста!"
-          ls -R vendor/recovery
-          exit 1
-        fi
+        # Запускаем сборку напрямую, Лиса уже на месте!
+        lunch omni_WP15-eng || { echo "LUNCH FAILED"; exit 1; }
+        mka bootimage -j$(nproc --all)
 
 
     - name: Upload Result
