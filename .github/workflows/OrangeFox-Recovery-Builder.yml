@@ -119,22 +119,31 @@ jobs:
         # Качаем Лису
         git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
 
-    - name: Build OrangeFox
+    - name: Build OrangeFox WP15
       run: |
         cd ~/fox
+        rm -rf out/target/product/WP15
         source build/envsetup.sh
         
-        # Настраиваем Лису под твой WP15
+        # Force creating the flags and config files you showed in the working build
+        mkdir -p device/wheatek/WP15/recovery/root/system/etc
+        [ -f device/wheatek/WP15/recovery.fstab ] && cp device/wheatek/WP15/recovery.fstab device/wheatek/WP15/recovery/root/system/etc/twrp.flags
+        echo "fox_update_data=1" > device/wheatek/WP15/recovery/root/system/etc/fox.cfg
+        
+        # Critical OrangeFox environment variables
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
         export FOX_BUILD_DEVICE=WP15
         export OF_AB_DEVICE=1
         export OF_VIRTUAL_AB=1
+        export FOX_VERSION="R11.1_Custom"
         export LC_ALL=C
         
-        # Запускаем сборку напрямую, Лиса уже на месте!
         lunch omni_WP15-eng || { echo "LUNCH FAILED"; exit 1; }
+        
+        # Starting the build
         mka bootimage -j$(nproc --all)
+
 
 
     - name: Upload Result
