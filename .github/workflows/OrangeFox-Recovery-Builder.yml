@@ -111,31 +111,39 @@ jobs:
         # Принудительно качаем скрипты сборки Лисы, если их нет
         [ -d vendor/recovery ] || git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
 
-
+    - name: Clone OrangeFox Vendor
+      run: |
+        cd ~/fox
+        # Удаляем всё старое, чтобы не мешалось
+        rm -rf vendor/recovery
+        rm -rf vendor/twrp
+        # Качаем вендора напрямую в нужную ветку
+        git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
+        
     - name: Build OrangeFox
       run: |
         cd ~/fox
         source build/envsetup.sh
         
-        # Флаги идентификации OrangeFox
+        # Критически важные флаги для WP15 (Virtual A/B)
         export ALLOW_MISSING_DEPENDENCIES=true
-        export FOX_VERSION="R11.1_1"
-        export FOX_BUILD_DEVICE="WP15"
-        export LC_ALL=C
-        
-        # Флаги для интеграции в boot.img (Virtual A/B)
         export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
+        export FOX_BUILD_DEVICE=WP15
         export OF_AB_DEVICE=1
         export OF_VIRTUAL_AB=1
+        export LC_ALL=C
         
-        # Пытаемся запустить родной скрипт сборки Лисы, если он скачался
-        if [ -f vendor/recovery/orangefox_build.sh ]; then
-          lunch omni_WP15-eng
+        # Проверяем наличие файла перед стартом
+        if [ -d "vendor/recovery/orangefox" ] || [ -f "vendor/recovery/orangefox_build.sh" ]; then
+          lunch omni_WP15-eng || { echo "LUNCH FAILED"; exit 1; }
+          # Собираем именно bootimage, так как раздела recovery нет
           mka bootimage -j$(nproc --all)
         else
-          echo "ОШИБКА: Исходники OrangeFox не найдены в vendor/recovery!"
+          echo "КРИТИЧЕСКАЯ ОШИБКА: Папка vendor/recovery пуста!"
+          ls -R vendor/recovery
           exit 1
         fi
+
 
     - name: Upload Result
       uses: actions/upload-artifact@v4
