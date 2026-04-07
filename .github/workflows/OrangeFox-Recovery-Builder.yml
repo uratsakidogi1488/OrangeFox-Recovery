@@ -114,12 +114,11 @@ jobs:
     - name: Clone OrangeFox Vendor
       run: |
         cd ~/fox
-        # Удаляем всё старое, чтобы не мешалось
+        # Удаляем только старую папку recovery, базовый TWRP не трогаем!
         rm -rf vendor/recovery
-        rm -rf vendor/twrp
-        # Качаем вендора напрямую в нужную ветку
+        # Качаем Лису
         git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
-        
+
     - name: Build OrangeFox
       run: |
         cd ~/fox
