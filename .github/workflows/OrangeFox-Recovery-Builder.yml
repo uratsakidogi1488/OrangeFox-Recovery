@@ -23,8 +23,7 @@ on:
       DEVICE_PATH:
         description: 'Specify your device path.'
         required: true
-        default: '/fox/device/wheatek/WP15
-        '
+        default: 'fox/device/wheatek/WP15'
       DEVICE_NAME:
         description: 'Specify your Device Codename.'
         required: true
