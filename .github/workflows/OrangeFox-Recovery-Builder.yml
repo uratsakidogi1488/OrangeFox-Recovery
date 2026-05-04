@@ -103,14 +103,28 @@ jobs:
     - name: Clone Device Tree
       run: |
         cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
-        git clone ${{ github.event.inputs.DEVICE_TREE }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
-        cd ${{ github.event.inputs.DEVICE_PATH }}
-        echo "COMMIT_ID=$(git rev-parse HEAD)" >> $GITHUB_ENV
+        REPO="${{ github.event.inputs.DEVICE_TREE }}"
+        BRANCH="${{ github.event.inputs.DEVICE_TREE_BRANCH }}"
+        DEST="./${{ github.event.inputs.DEVICE_PATH }}"
+        # strip .git for ls-remote if present
+        REPO_URL="$REPO"
+        if [[ "$REPO_URL" == *.git ]]; then REPO_URL="${REPO_URL%.git}"; fi
 
-    - name: Check Manifest Branch
-      uses: haya14busa/action-cond@v1
-      id: fox_branch
-      with:
+        echo "Cloning $REPO (branch: $BRANCH) into $DEST"
+        if git ls-remote --heads "$REPO_URL" "$BRANCH" | grep -q "$BRANCH"; then
+        git clone --depth 1 --branch "$BRANCH" "$REPO" "$DEST"
+        else
+        echo "WARNING: branch '$BRANCH' not found at $REPO. Falling back to repository default branch."
+        git clone --depth 1 "$REPO" "$DEST"
+        # optionally detect which branch was checked out
+        (cd "$DEST" && echo "Checked out branch: $(git rev-parse --abbrev-ref HEAD)")
+        fi
+
+        cd "$DEST"
+        echo "COMMIT_ID=$(git rev-parse HEAD)" >> $GITHUB_ENV    - name: Check Manifest Branch
+        uses: haya14busa/action-cond@v1
+        id: fox_branch
+        with:
         cond: ${{ github.event.inputs.MANIFEST_BRANCH == '11.0' || github.event.inputs.MANIFEST_BRANCH == '12.1' }}
         if_true: lunch twrp_${{ github.event.inputs.DEVICE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image
         if_false: lunch omni_${{ github.event.inputs.DEVICE_NAME }}-eng && make clean && mka ${{ github.event.inputs.BUILD_TARGET }}image
@@ -138,7 +152,7 @@ jobs:
         cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
         if [ -f out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.img ]; then
             echo "CHECK_IMG_IS_OK=true" >> $GITHUB_ENV
-            echo "FILE_PATH=${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}" >> $GITHUB_ENV
+             echo "FILE_PATH=${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}" >> $GITHUB_ENV
             echo "MD5_IMG=$(md5sum out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.img | cut -d ' ' -f 1)" >> $GITHUB_ENV
         elif [ -f out/target/product/${{ github.event.inputs.DEVICE_NAME }}/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.img ]; then
             echo "CHECK_IMG_IS_OK=true" >> $GITHUB_ENV
