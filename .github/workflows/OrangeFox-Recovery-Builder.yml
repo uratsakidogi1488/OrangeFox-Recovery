@@ -2,157 +2,229 @@ name: OrangeFox - Build
 
 on:
   workflow_dispatch:
+    inputs:
+      MANIFEST_BRANCH:
+        description: 'OrangeFox Branch'
+        required: true
+        default: '11.0'
+        type: choice
+        options:
+        - 14.1
+        - 12.1
+        - 11.0
+      DEVICE_TREE:
+        description: 'Custom Recovery Tree'
+        required: true
+        default: 'https://github.com/uratsakidogi1488/android_device_wheatek_WP15'
+      DEVICE_TREE_BRANCH:
+        description: 'Custom Recovery Tree Branch'
+        required: true
+        default: 'android-11.0'
+      DEVICE_PATH:
+        description: 'Specify your device path.'
+        required: true
+        default: '/fox/device/wheatek/WP15
+        '
+      DEVICE_NAME:
+        description: 'Specify your Device Codename.'
+        required: true
+        default: 'WP15'
+      BUILD_TARGET:
+        description: 'Specify your Build Target'
+        required: true
+        default: 'recovery'
+        type: choice
+        options:
+        - boot
+        - recovery
+        - vendorboot
+      LDCHECK:
+        description: 'Path of blobs to check' 
+        required: true
+        default: 'system/bin/qseecomd'
+      RECOVERY_TAR:
+        description: 'OrangeFox-WP15-Build'
+        required: false
+        default: false
+        type: boolean
+      RECOVERY_INSTALLER:
+        description: 'Include recovery installer zip'
+        type: boolean
+        required: true
+        default: true
 
 jobs:
   build:
+    name: Build OFRP by ${{ github.actor }}
     runs-on: ubuntu-latest
+    if: github.event.repository.owner.id == github.event.sender.id
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v3
 
-    - name: Cleanup Space
+    - name: Display Inputs
       run: |
-        sudo rm -rf /usr/share/dotnet /etc/mysql /etc/php /opt/ghc
-        sudo apt clean
+        echo "::group::User Environment Variables"
+        echo "Displaying variables/inputs."
+        echo "Include Recovery Installer: ${{ github.event.inputs.RECOVERY_INSTALLER }}"
+        echo "Release recovery.tar For Samsung devices: ${{ github.event.inputs.RECOVERY_TAR }}"
+        echo "::endgroup::"
 
-    - name: Install Build Tools
+    - name: Clean-up
+      uses: rokibhasansagar/slimhub_actions@main
+
+    - name: Swap Space
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 24
+      
+    - name: Build Environment
       run: |
         sudo apt update
-        sudo apt install -y bc build-essential git-core gnupg gperf libsdl1.2-dev squashfs-tools zip curl libncurses5-dev zlib1g-dev openjdk-8-jdk gcc-multilib g++-multilib x11proto-core-dev libx11-dev libgl1-mesa-dev libxml2-utils xsltproc unzip python3 python-is-python3
-
-    - name: Install Repo
+        sudo apt -y upgrade
+        git clone https://gitlab.com/OrangeFox/misc/scripts
+        cd scripts
+        sudo bash setup/android_build_env.sh
+      
+    - name: Set-up Manifest
+      if: github.event.inputs.MANIFEST_BRANCH == '11.0' || github.event.inputs.MANIFEST_BRANCH == '12.1' || github.event.inputs.MANIFEST_BRANCH == '14.1'
       run: |
-        mkdir ~/bin
-        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
-        chmod a+x ~/bin/repo
-        sudo ln -sf ~/bin/repo /usr/bin/repo
-
-    - name: Test GitLab Connectivity
-      run: |
-         echo "=== Проверка DNS ==="
-         nslookup gitlab.com || true
-    
-         echo "=== Проверка ping ==="
-         ping -c 2 gitlab.com || true
-    
-         echo "=== Проверка HTTPS ==="
-         curl -v https://gitlab.com 2>&1 | head -20
-    
-         echo "=== Проверка доступности проекта ==="
-         curl -s https://gitlab.com/api/v4/projects/OrangeFox%2Frecovery | head -20
-  
-    - name: Sync Sources (TWRP Base + OrangeFox)
-      run: |
-        rm -rf ~/fox ~/sync
-        mkdir -p ~/fox
-        cd ~/fox
-        
-        git config --global user.name "GitHub Action"
-        git config --global user.email "action@github.com"
-        
-        echo "=== 1. Качаем стабильную базу инструментов (TWRP 11) ==="
-        repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-11 --depth=1
-        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
-        
-        echo "=== 2. Вырезаем стандартный TWRP ==="
-        rm -rf bootable/recovery
-        
-        echo "=== 3. Внедряем твои рабочие исходники OrangeFox 11.0 ==="
-        git clone --depth=1 https://gitlab.com/OrangeFox/bootable/Recovery.git -b fox_11.0 bootable/recovery
-        git clone --depth=1 https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
-
-    - name: Force Clone OrangeFox Vendor
-      run: |
-        cd ~/fox
-        # Удаляем пустой или стандартный twrp-вендор, если он есть
-        rm -rf vendor/recovery
-        # Качаем именно ядро OrangeFox
-        git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
+        mkdir -p ${GITHUB_WORKSPACE}/OrangeFox
+        cd ${GITHUB_WORKSPACE}/OrangeFox
+        git config --global user.name "Samuel Kendall"
+        git config --global user.email "kinguser981@gmail.com"
+        git clone https://github.com/Teguhpunya/orangefox_sync.git
+        cd orangefox_sync
+        ./orangefox_sync.sh --branch ${{ github.event.inputs.MANIFEST_BRANCH }} --path ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
 
     - name: Clone Device Tree
       run: |
-        git clone https://github.com/uratsakidogi1488/android_device_wheatek_WP15 ~/fox/device/wheatek/WP15
-        
-  
-    - name: Create Config File
-      run: |
-        cd ~/fox/device/wheatek/WP15
-        echo "def check_config(config):" > fox.config.py
-        echo "    config['FOX_VERSION'] = 'R11.1'" >> fox.config.py
-        echo "    config['FOX_BUILD_TYPE'] = 'Unofficial'" >> fox.config.py
+        cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
+        git clone ${{ github.event.inputs.DEVICE_TREE }} -b ${{ github.event.inputs.DEVICE_TREE_BRANCH }} ./${{ github.event.inputs.DEVICE_PATH }}
+        cd ${{ github.event.inputs.DEVICE_PATH }}
+        echo "COMMIT_ID=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-  
-    - name: Patch Device Tree
-      run: |
-        cd ~/fox/device/wheatek/WP15
-        
-        # 1. Нейтрализуем HAL (иначе lunch упадет)
-        sed -i 's/PRODUCT_STATIC_BOOT_CONTROL_HAL/DUMMY_IGNORE_THIS/g' device.mk
-        
-        # 2. Меняем пути Omni на TWRP
-        sed -i 's/vendor\/omni\/config\/common.mk/vendor\/twrp\/config\/common.mk/g' omni_WP15.mk
-        
-        # 3. Настройки экрана (чтобы тема не крашнулась)
-        echo "" >> BoardConfig.mk
-        echo "TARGET_SCREEN_WIDTH := 720" >> BoardConfig.mk
-        echo "TARGET_SCREEN_HEIGHT := 1600" >> BoardConfig.mk
-        echo "TW_THEME := portrait_hdpi" >> BoardConfig.mk
-        
-        # 4. Чиним меню lunch
-        sed -i '/add_lunch_combo/d' vendorsetup.sh
-        echo 'PRODUCT_MAKEFILES := $(LOCAL_DIR)/omni_WP15.mk' > AndroidProducts.mk
-        echo 'COMMON_LUNCH_CHOICES := omni_WP15-eng' >> AndroidProducts.mk
-        
-        echo "=== Патчи наложены! ==="
-
-    - name: Download OrangeFox Scripts
-      run: |
-        cd ~/fox
-        # Принудительно качаем скрипты сборки Лисы, если их нет
-        [ -d vendor/recovery ] || git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
-
-    - name: Clone OrangeFox Vendor
-      run: |
-        cd ~/fox
-        # Удаляем только старую папку recovery, базовый TWRP не трогаем!
-        rm -rf vendor/recovery
-        # Качаем Лису
-        git clone https://gitlab.com/OrangeFox/vendor/recovery.git -b fox_11.0 vendor/recovery
-
-    - name: Build OrangeFox WP15
-      run: |
-        cd ~/fox
-        rm -rf out/target/product/WP15
-        source build/envsetup.sh
-        
-        # Force creating the flags and config files you showed in the working build
-        mkdir -p device/wheatek/WP15/recovery/root/system/etc
-        [ -f device/wheatek/WP15/recovery.fstab ] && cp device/wheatek/WP15/recovery.fstab device/wheatek/WP15/recovery/root/system/etc/twrp.flags
-        echo "fox_update_data=1" > device/wheatek/WP15/recovery/root/system/etc/fox.cfg
-        
-        # Critical OrangeFox environment variables
-        export ALLOW_MISSING_DEPENDENCIES=true
-        export FOX_REPLACE_BOOT_IF_NO_RECOVERY=1
-        export FOX_BUILD_DEVICE=WP15
-        export OF_AB_DEVICE=1
-        export OF_VIRTUAL_AB=1
-        export FOX_VERSION="R11.1_Custom"
-        export LC_ALL=C
-        
-        lunch omni_WP15-eng || { echo "LUNCH FAILED"; exit 1; }
-        
-        # Starting the build
-        mka bootimage -j$(nproc --all)
-
-
-
-    - name: Upload Result
-      uses: actions/upload-artifact@v4
+    - name: Check Manifest Branch
+      uses: haya14busa/action-cond@v1
+      id: fox_branch
       with:
-        name: OrangeFox-WP15-Build
-        # Используем двойную звездочку, чтобы он прочесал все подпапки в out
-        path: |
-          ~/fox/out/target/product/*/*.img
-          ~/fox/out/target/product/*/*.zip
-        if-no-files-found: error
+        cond: ${{ github.event.inputs.MANIFEST_BRANCH == '11.0' || github.event.inputs.MANIFEST_BRANCH == '12.1' }}
+        if_true: lunch twrp_${{ github.event.inputs.DEVICE_NAME }}-eng && make clean && mka adbd ${{ github.event.inputs.BUILD_TARGET }}image
+        if_false: lunch omni_${{ github.event.inputs.DEVICE_NAME }}-eng && make clean && mka ${{ github.event.inputs.BUILD_TARGET }}image
+      
+    - name: Building OrangeFox
+      run: |
+        cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
+        set +e
+        source build/envsetup.sh
+        export ALLOW_MISSING_DEPENDENCIES=true
+        set -e
+        ${{ steps.fox_branch.outputs.value }}
 
+    - name: Set Build Date # Output will be use in Release
+      run: |
+        echo "BUILD_DATE=$(date +%Y%m%d)" >> $GITHUB_ENV
+        DEVICE_TREE_URL="${{ github.event.inputs.DEVICE_TREE }}"
+        if [[ "${DEVICE_TREE_URL}" == *.git ]]; then
+          DEVICE_TREE_URL="${DEVICE_TREE_URL%.git}"
+        fi
+        echo "DEVICE_TREE_URL=${DEVICE_TREE_URL}" >> $GITHUB_ENV
+
+    - name: Check if Recovery Exist
+      run: |
+        cd ${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}
+        if [ -f out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.img ]; then
+            echo "CHECK_IMG_IS_OK=true" >> $GITHUB_ENV
+            echo "FILE_PATH=${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}" >> $GITHUB_ENV
+            echo "MD5_IMG=$(md5sum out/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.img | cut -d ' ' -f 1)" >> $GITHUB_ENV
+        elif [ -f out/target/product/${{ github.event.inputs.DEVICE_NAME }}/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.img ]; then
+            echo "CHECK_IMG_IS_OK=true" >> $GITHUB_ENV
+            echo "FILE_PATH=${GITHUB_WORKSPACE}/OrangeFox/fox_${{ github.event.inputs.MANIFEST_BRANCH }}/out/target/product/${{ github.event.inputs.DEVICE_NAME }}/target/product/${{ github.event.inputs.DEVICE_NAME }}" >> $GITHUB_ENV
+            echo "MD5_IMG=$(md5sum out/target/product/${{ github.event.inputs.DEVICE_NAME }}/target/product/${{ github.event.inputs.DEVICE_NAME }}/OrangeFox*.img | cut -d ' ' -f 1)" >> $GITHUB_ENV
+        else
+            echo "Recovery out directory is empty."
+            cd Exit
+        fi
+
+    - name: Rename the Recovery
+      run: |
+        cd ${{ env.FILE_PATH }}/
+        if [ "${{ github.event.inputs.BUILD_TARGET }}" = "boot" ]; then
+        mv OrangeFox*.img boot.img
+        echo "RECOVERY_TYPE=boot" >> $GITHUB_ENV
+        echo "boot.img file found!"
+        elif [ "${{ github.event.inputs.BUILD_TARGET }}" = "recovery" ]; then
+        mv OrangeFox*.img recovery.img
+        echo "RECOVERY_TYPE=recovery" >> $GITHUB_ENV
+        echo "recovery.img file found!"
+        elif [ "${{ github.event.inputs.BUILD_TARGET }}" = "vendorboot" ]; then
+        mv OrangeFox*.img vendor_boot.img
+        echo "RECOVERY_TYPE=vendor_boot" >> $GITHUB_ENV
+        echo "vendor_boot.img file found!"
+        else
+        echo "No Recovery file found!"
+        fi
+      continue-on-error: true
+      
+    - name: Include Recovery Installer
+      run: |
+        if [ ${{ github.event.inputs.RECOVERY_INSTALLER }} = true ]; then
+          cd ${{ env.FILE_PATH }}/
+          wget https://github.com/kinguser981/recovery-installer/releases/download/11256427880/recovery-installer.zip
+          zip -ur recovery-installer.zip ${{ env.RECOVERY_TYPE }}.img
+        fi
+      continue-on-error: true
+        
+    - name: Recovery to tar for Samsung devices
+      run: |
+        if [ ${{ github.event.inputs.RECOVERY_TAR }} = true ]; then
+          cd ${{ env.FILE_PATH }}/
+          tar -cvf ${{ env.RECOVERY_TYPE }}.tar ${{ env.RECOVERY_TYPE }}.img
+        fi
+      continue-on-error: true
+
+    - name: Upload to Release
+      if: env.CHECK_IMG_IS_OK == 'true'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ${{ env.FILE_PATH }}/${{ env.RECOVERY_TYPE }}.img
+          ${{ env.FILE_PATH }}/${{ env.RECOVERY_TYPE }}.tar
+          ${{ env.FILE_PATH }}/recovery-installer.zip
+          ${{ env.FILE_PATH }}/OrangeFox*.zip
+        name: Unofficial OrangeFox for ${{ github.event.inputs.DEVICE_NAME }} // ${{ env.BUILD_DATE }}
+        tag_name: ${{ github.run_id }}
+        body: |
+          Build: ${{ github.event.inputs.MANIFEST_BRANCH }}
+          Device: [Device Tree/Branch](${{ github.event.inputs.DEVICE_TREE }}/tree/${{ github.event.inputs.DEVICE_TREE_BRANCH }})
+          Commit: Most recent [commit](${{ github.event.inputs.DEVICE_TREE }}/commit/${{ env.COMMIT_ID }}) during building.
+          
+    - name: Release ramdisk-recovery
+      if: env.CHECK_IMG_IS_OK == 'true'
+      uses: softprops/action-gh-release@4634c16e79c963813287e889244c50009e7f0981
+      with:
+        files: |
+          ${{ env.FILE_PATH }}/obj/PACKAGING/vendor_ramdisk_fragments_intermediates/recovery.*
+          ${{ env.FILE_PATH }}/ramdisk-recovery.*
+        name: Unofficial OrangeFox for ${{ github.event.inputs.DEVICE_NAME }} // ${{ env.BUILD_DATE }}
+        tag_name: ${{ github.run_id }}
+        body: |
+          Target: ${{ env.RECOVERY_TYPE }}.img
+          Build: ${{ github.event.inputs.MANIFEST_BRANCH }}
+          Device: [Device Tree/Branch](${{ env.DEVICE_TREE_URL }}/tree/${{ inputs.DEVICE_TREE_BRANCH }})
+          Commit: Most recent [commit](${{ env.DEVICE_TREE_URL }}/commit/${{ env.COMMIT_ID }}) during building.
+          MD5 (img): ${{ env.MD5_IMG }}
+          
+    - name: Run LDCheck
+      run: |
+        cd tools
+        mv -n libneeds ${{ env.FILE_PATH }}/recovery/root/
+        mv -n ldcheck ${{ env.FILE_PATH }}/recovery/root/
+        cd ${{ env.FILE_PATH }}/recovery/root/
+        python3 ldcheck -p system/lib64:vendor/lib64:system/lib:vendor/lib -d ${{ github.event.inputs.LDCHECK }}
+        echo "Done checking missing dependencies. Review, and reconfigure your tree."
+      continue-on-error: true
